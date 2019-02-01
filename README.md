@@ -21,8 +21,9 @@ In the directory, run `.\Find-UserInAWSAccounts.ps1 [Username or part of it]` an
 
 ## Notes
 
-Credentials are cached in the main script's directory in a file called `awscredentials`. They are temporary credentials
-and expire at the default interval (1 hour at time of authoring).
+If running this script multiple times in a short time span, you may want to cache your credentials. Use the 
+`-CacheCredentials` switch. Credentials are cached in the main script's directory in a file called `awscredentials`.
+They are temporary credentials and expire at the default interval (1 hour at time of authoring).
 
 # Credits
 

@@ -3,7 +3,11 @@ param
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
     [String]
-    $UsernameOrPart
+    $UsernameOrPart,
+
+    [Parameter()]
+    [Switch]
+    $CacheCredentials
 )
 
 $config = Get-Content "$PSScriptRoot\config.json" | ConvertFrom-JSON
@@ -13,19 +17,17 @@ $profileLocation = ($ExecutionContext.InvokeCommand.ExpandString($config.profile
 
 Set-DefaultAWSRegion -Region $config.region
 
-try
-{
-    $mainCredential = Get-AWSCredential -ProfileName $profileName -ProfileLocation $profileLocation
-    $user = Get-IamUser -UserName $UsernameOrPart -Credential $mainCredential
-}
-catch
+<#
+    .SYNOPSIS
+        Get the primary account credentials using the OktaAWSToken module
+#>
+function Get-PrimaryCredential
 {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Import-Module ".\OktaAWSToken"
-    $mainCredential =  Get-OktaAWSToken
-    Set-AWSCredential -AccessKey $mainCredential.AccessKeyId -SecretKey $mainCredential.SecretAccessKey -StoreAs $profileName -ProfileLocation $profileLocation
-    Add-Content -Path $profileLocation -Value "$([Environment]::NewLine)aws_session_token=$($mainCredential.SessionToken)"
-    $user = Get-IamUser -UserName $UsernameOrPart -Credential $mainCredential
+    $credential =  Get-OktaAWSToken
+
+    return $credential
 }
 
 <#
@@ -92,6 +94,25 @@ function Write-UserInfo
     }
 }
 
+if ($CacheCredentials)
+{
+    try
+    {
+        $mainCredential = Get-AWSCredential -ProfileName $profileName -ProfileLocation $profileLocation
+    }
+    catch
+    {
+        $mainCredential = Get-PrimaryCredential
+        Set-AWSCredential -AccessKey $mainCredential.AccessKeyId -SecretKey $mainCredential.SecretAccessKey -StoreAs $profileName -ProfileLocation $profileLocation
+        Add-Content -Path $profileLocation -Value "$([Environment]::NewLine)aws_session_token=$($mainCredential.SessionToken)"
+    }
+}
+else
+{
+    $mainCredential = Get-PrimaryCredential
+}
+
+$user = Get-IamUser -UserName $UsernameOrPart -Credential $mainCredential
 Write-UserInfo "Primary Account" $user $mainCredential
 
 foreach ($account in $config.accounts)
