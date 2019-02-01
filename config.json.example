@@ -1,0 +1,8 @@
+{
+  "accounts": [
+    { "accountName": "Name for Report", "arn": "arn:aws:iam::1234567890:role/AssumedRole" }
+  ],
+  "profileName": "AWS_Offboarding_SAML_Creds",
+  "profileLocation": "$PSScriptRoot\\awscredentials",
+  "region": "us-east-1"
+}
